@@ -16,7 +16,7 @@ pub struct Flags {
 }
 
 pub struct ChClient {
-    builder: reqwest::RequestBuilder,
+    builder: reqwest_middleware::RequestBuilder,
     cache: Arc<tokio::sync::Mutex<HashMap<String, Vec<ResultRow>>>>,
 }
 impl Clone for ChClient {
@@ -39,7 +39,13 @@ impl ResultRow {
 
 impl ChClient {
     pub fn from_flags(flags: &Flags) -> Self {
-        let client = reqwest::Client::new();
+        let retry_policy =
+            reqwest_retry::policies::ExponentialBackoff::builder().build_with_max_retries(3);
+        let client = reqwest_middleware::ClientBuilder::new(reqwest::Client::new())
+            .with(reqwest_retry::RetryTransientMiddleware::new_with_policy(
+                retry_policy,
+            ))
+            .build();
         ChClient {
             builder: client
                 .get(flags.url.clone())
