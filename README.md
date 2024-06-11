@@ -9,10 +9,11 @@ Variables are supported, even those depending on others. The tool runs over all 
 ## Usage
 
 ```console
-$ ch-grafana-cache --help
-Execute Clickhouse SQL queries from a Grafana dashboard
+Execute Clickhouse SQL queries from a Grafana dashboard.
 
-Usage: ch-grafana-cache [OPTIONS] --grafana <GRAFANA> --dashboard <DASHBOARD> <COMMAND>
+Call with either --grafana-url and --dashboard, or with --json
+
+Usage: ch-grafana-cache [OPTIONS] <COMMAND>
 
 Commands:
   print    Print SQL statements, with syntax highlighting
@@ -20,31 +21,45 @@ Commands:
   help     Print this message or the help of the given subcommand(s)
 
 Options:
-      --grafana <GRAFANA>      Base Grafana URL
-      --dashboard <DASHBOARD>  Grafana dashboard id
-      --theme <THEME>          Synctect for syntax highlighting [env: CH_GRAFANA_CACHE_THEME=]
-  -h, --help                   Print helptext
+      --grafana-url <GRAFANA_URL>
+          Base Grafana URL
 
-$ ch-grafana-cache execute --help
-Execute the queries
+          [env: GRAFANA_URL=https://grafana.corp.com/]
 
-Usage: ch-grafana-cache --grafana <GRAFANA> --dashboard <DASHBOARD> execute --clickhouse <CLICKHOUSE> --username <USERNAME>
+      --dashboard <DASHBOARD>
+          Grafana dashboard id
 
-Options:
-      --clickhouse <CLICKHOUSE>  URL to the Clickhouse HTTP endpoint
-      --username <USERNAME>      Clickhouse username
-  -h, --help                     Print help
+      --json <JSON>
+          Dashboard JSON file
+
+      --theme <THEME>
+          Synctect for syntax highlighting. Pass any invalid value to see the list of available themes
+
+          [env: CH_GRAFANA_CACHE_THEME=Nord]
+
+  -h, --help
+          Print help (see a summary with '-h')
 ```
 
-Sample output:
+Examples
 
-```text
+```console
+$ # Printing the SQL queries in the dashboard
+$ ch-grafana-cache --grafana https://grafana.corp.com --dashboard mydashboard print
+Variables:
+
+...
+
+Panels:
+...
+
+$ # Executing the SQL queries in the dashboard across all combinations
+$ ch-grafana-cache --grafana https://grafana.corp.com --dashboard mydashboard execute
 INFO ch_grafana_cache: Retrieving dashboard
 INFO ch_grafana_cache: Retrieved dashboard 'mydashboard'
 INFO ch_grafana_cache: 166 variables combinations found. Executing queries...
 INFO ch_grafana_cache: Executing combination i=0 n_combinations=166
 INFO ch_grafana_cache: Executed combination duration=178.932498ms size_mb=0.107275
-...
 ```
 
 ## Verifying that `chproxy` caching works
