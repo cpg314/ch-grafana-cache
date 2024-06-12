@@ -59,8 +59,20 @@ impl Dashboard {
         variables_config: VariablesConfig,
         client: &ChClient,
     ) -> anyhow::Result<Vec<VariablesAssignment<'_>>> {
+        info!("Determining variables combinations");
+        let progress = indicatif::ProgressBar::with_draw_target(
+            Some(self.variables().count() as u64),
+            indicatif::ProgressDrawTarget::hidden(),
+        );
         let mut combinations: Vec<VariablesAssignment> = vec![Default::default()];
         for var in self.variables() {
+            info!(
+                var.name,
+                "Processing variable {}/{}, ETA {}",
+                progress.position(),
+                progress.length().unwrap(),
+                indicatif::HumanDuration(progress.eta())
+            );
             let mut combinations2 = Vec::<VariablesAssignment>::default();
             for assignment in &combinations {
                 // WARN: This heavily relies on the caching in the Clickhouse client to not rerun
@@ -81,6 +93,7 @@ impl Dashboard {
                 }
             }
             combinations = combinations2;
+            progress.inc(1);
         }
         Ok(combinations)
     }

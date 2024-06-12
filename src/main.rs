@@ -155,9 +155,18 @@ async fn main_impl() -> anyhow::Result<()> {
                 "{} variables combinations found. Executing queries...",
                 n_combinations
             );
-
-            for (i, combination) in combinations.into_iter().enumerate() {
-                info!(i, n_combinations, "Executing combination");
+            let progress = indicatif::ProgressBar::with_draw_target(
+                Some(n_combinations as u64),
+                indicatif::ProgressDrawTarget::hidden(),
+            );
+            for combination in combinations {
+                info!(
+                    ?combination,
+                    "Executing combination {}/{}, ETA {}.",
+                    progress.position(),
+                    progress.length().unwrap(),
+                    indicatif::HumanDuration(progress.eta())
+                );
                 let start = std::time::Instant::now();
                 debug!(?combination);
 
@@ -167,6 +176,7 @@ async fn main_impl() -> anyhow::Result<()> {
                     size += client.query_native(sql).await?;
                 }
                 info!(duration=?start.elapsed(), size_mb = size as f64/1e6, "Executed combination");
+                progress.inc(1);
             }
             info!(duration=?start.elapsed(), "Done");
         }
