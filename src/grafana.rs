@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use serde::Deserialize;
 use tracing::*;
@@ -6,6 +6,27 @@ use tracing::*;
 use super::clickhouse::ChClient;
 use super::variables::VariablesAssignment;
 use crate::variables;
+
+#[derive(Debug, Default, Deserialize)]
+pub struct VariablesConfig(HashMap<String, Vec<String>>);
+impl VariablesConfig {
+    pub fn check(&self, dashboard: &Dashboard) -> anyhow::Result<()> {
+        if !self.0.is_empty() {
+            warn!(config=?self.0, "Using variables configuration");
+        }
+        let variables: HashSet<&String> = dashboard.variables().map(|v| &v.name).collect();
+        for var in self.0.keys() {
+            if !variables.contains(var) {
+                anyhow::bail!(
+                    "Variable {} does not exist in the dashboard (variables: {:?})",
+                    var,
+                    variables
+                );
+            }
+        }
+        Ok(())
+    }
+}
 
 #[derive(Debug, Deserialize)]
 pub struct DashboardResponse {
@@ -35,28 +56,31 @@ impl Dashboard {
     // This is a bit inefficient, to be able to handle interdependent variables.
     pub async fn variables_combinations(
         &self,
+        variables_config: VariablesConfig,
         client: &ChClient,
     ) -> anyhow::Result<Vec<VariablesAssignment<'_>>> {
-        let mut combinations = Vec::<VariablesAssignment>::default();
-        for (i, var) in self.variables().enumerate() {
-            if i == 0 {
-                combinations = var
-                    .get_variants(client, &Default::default())
-                    .await?
-                    .map(|val| HashMap::from([(var.name.as_str(), val)]))
-                    .collect();
-            } else {
-                let mut combinations2 = Vec::<VariablesAssignment>::default();
-                for assignment in &combinations {
-                    // WARN: This heavily relies on the caching in the Clickhouse client
-                    for val in var.get_variants(client, assignment).await? {
-                        let mut assignment2 = assignment.clone();
-                        assignment2.insert(var.name.as_str(), val);
-                        combinations2.push(assignment2);
-                    }
+        let mut combinations: Vec<VariablesAssignment> = vec![Default::default()];
+        for var in self.variables() {
+            let mut combinations2 = Vec::<VariablesAssignment>::default();
+            for assignment in &combinations {
+                // WARN: This heavily relies on the caching in the Clickhouse client to not rerun
+                // the queries that have no dependency in some variables
+                let variants: Box<dyn Iterator<Item = String>> =
+                    // TODO: Would be nice to avoid the clone
+                    if let Some(variants) = variables_config.0.get(&var.name).cloned() {
+                        // NOTE: It could also make sense to skip the ones that are not part of the
+                        // query response.
+                        Box::new(variants.into_iter())
+                    } else {
+                        Box::new(var.get_variants(client, assignment).await?)
+                    };
+                for val in variants {
+                    let mut assignment2 = assignment.clone();
+                    assignment2.insert(var.name.as_str(), val);
+                    combinations2.push(assignment2);
                 }
-                combinations = combinations2;
             }
+            combinations = combinations2;
         }
         Ok(combinations)
     }

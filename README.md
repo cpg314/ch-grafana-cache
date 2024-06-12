@@ -50,10 +50,11 @@ Execute the queries
 Usage: ch-grafana-cache execute [OPTIONS] --url <URL> --username <USERNAME>
 
 Options:
-      --url <URL>            URL to the Clickhouse HTTP endpoint [env: CLICKHOUSE_URL=]
-      --username <USERNAME>  Clickhouse username [env: CLICKHOUSE_USERNAME=]
-      --password <PASSWORD>  [env: CLICKHOUSE_PASSWORD=]
-  -h, --help                 Print help
+      --url <URL>                        URL to the Clickhouse HTTP endpoint [env: CLICKHOUSE_URL=]
+      --username <USERNAME>              Clickhouse username [env: CLICKHOUSE_USERNAME=]
+      --password <PASSWORD>              [env: CLICKHOUSE_PASSWORD=]
+      --variables-yaml <VARIABLES_YAML>  YAML file of the form variable_name: [ values ] to manually specify the values of some variables in the dashboard
+  -h, --help                             Print help
 ```
 
 Examples

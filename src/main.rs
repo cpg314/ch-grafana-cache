@@ -5,9 +5,13 @@ mod variables;
 use std::collections::HashSet;
 use std::path::PathBuf;
 
+use anyhow::Context;
 use clap::Parser;
 use colored::Colorize;
+use itertools::Itertools;
 use tracing::*;
+
+use grafana::VariablesConfig;
 
 /// Execute Clickhouse SQL queries from a Grafana dashboard.
 ///
@@ -72,6 +76,10 @@ enum Command {
     Execute {
         #[clap(flatten)]
         flags: clickhouse::Flags,
+        /// YAML file of the form variable_name: [ values ] to manually specify the values of some
+        /// variables in the dashboard
+        #[clap(long)]
+        variables_yaml: Option<PathBuf>,
     },
 }
 #[tokio::main]
@@ -105,10 +113,14 @@ async fn main_impl() -> anyhow::Result<()> {
     let start = std::time::Instant::now();
 
     let dashboard = args.get_dashboard().await?;
-    info!("Retrieved dashboard '{}'", dashboard.title);
-    println!();
+    info!(
+        "Retrieved dashboard '{}' with variables {}",
+        dashboard.title,
+        dashboard.variables().map(|v| &v.name).join(", ")
+    );
     match args.command {
         Command::Print => {
+            println!();
             println!("{}", "Variables:\n".yellow());
             for sql in dashboard.variables_sql() {
                 print_sql(sql, args.theme.as_ref())?;
@@ -118,10 +130,25 @@ async fn main_impl() -> anyhow::Result<()> {
                 print_sql(sql, args.theme.as_ref())?;
             }
         }
-        Command::Execute { flags: ch_args } => {
+        Command::Execute {
+            flags: ch_args,
+            variables_yaml,
+        } => {
+            let variables_config = if let Some(variables_yaml) = &variables_yaml {
+                serde_yaml::from_str(
+                    &std::fs::read_to_string(variables_yaml)
+                        .with_context(|| format!("Could not open {:?}", variables_yaml))?,
+                )?
+            } else {
+                VariablesConfig::default()
+            };
+            debug!(?variables_config);
+            variables_config.check(&dashboard)?;
             let client = clickhouse::ChClient::from_flags(&ch_args);
 
-            let combinations = dashboard.variables_combinations(&client).await?;
+            let combinations = dashboard
+                .variables_combinations(variables_config, &client)
+                .await?;
 
             let n_combinations = combinations.len();
             info!(
