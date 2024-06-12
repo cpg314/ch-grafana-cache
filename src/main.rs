@@ -13,6 +13,7 @@ use tracing::*;
 ///
 /// Call with either --grafana-url and --dashboard, or with --json
 #[derive(clap::Parser)]
+#[clap(version)]
 struct Flags {
     /// Base Grafana URL
     #[clap(long, env = "GRAFANA_URL")]
