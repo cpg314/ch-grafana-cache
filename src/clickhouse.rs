@@ -6,12 +6,12 @@ use tracing::*;
 #[derive(clap::Parser)]
 pub struct Flags {
     /// URL to the Clickhouse HTTP endpoint
-    #[clap(long)]
+    #[clap(long, env = "CLICKHOUSE_URL")]
     url: reqwest::Url,
     /// Clickhouse username
-    #[clap(long)]
+    #[clap(long, env = "CLICKHOUSE_USERNAME")]
     username: String,
-    #[clap(long)]
+    #[clap(long, env = "CLICKHOUSE_PASSWORD")]
     password: Option<String>,
 }
 

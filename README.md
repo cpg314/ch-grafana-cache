@@ -9,6 +9,7 @@ Variables are supported, even those depending on others. The tool runs over all 
 ## Usage
 
 ```console
+$ ch-grafana-cache --help
 Execute Clickhouse SQL queries from a Grafana dashboard.
 
 Call with either --grafana-url and --dashboard, or with --json
@@ -42,6 +43,17 @@ Options:
 
   -V, --version
           Print version
+
+$ ch-grafana-cache execute --help
+Execute the queries
+
+Usage: ch-grafana-cache execute [OPTIONS] --url <URL> --username <USERNAME>
+
+Options:
+      --url <URL>            URL to the Clickhouse HTTP endpoint [env: CLICKHOUSE_URL=]
+      --username <USERNAME>  Clickhouse username [env: CLICKHOUSE_USERNAME=]
+      --password <PASSWORD>  [env: CLICKHOUSE_PASSWORD=]
+  -h, --help                 Print help
 ```
 
 Examples
@@ -57,7 +69,7 @@ Panels:
 ...
 
 $ # Executing the SQL queries in the dashboard across all combinations
-$ ch-grafana-cache --grafana https://grafana.corp.com --dashboard mydashboard execute
+$ ch-grafana-cache --grafana https://grafana.corp.com --dashboard mydashboard execute --clickhouse http://chproxy.clickhouse.internal --username default
 INFO ch_grafana_cache: Retrieving dashboard
 INFO ch_grafana_cache: Retrieved dashboard 'mydashboard'
 INFO ch_grafana_cache: 166 variables combinations found. Executing queries...
