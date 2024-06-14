@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use reqwest_middleware::RequestBuilder;
 use tracing::*;
 
 #[derive(clap::Parser)]
@@ -53,17 +54,28 @@ impl ChClient {
             cache: Default::default(),
         }
     }
+    async fn send_query(&self, builder: RequestBuilder) -> anyhow::Result<reqwest::Response> {
+        debug!("Sending query");
+        let resp = builder.send().await?;
+        if !resp.status().is_success() {
+            anyhow::bail!(
+                "{}: {}",
+                resp.status(),
+                resp.text().await.unwrap_or_default()
+            );
+        }
+        Ok(resp)
+    }
     #[instrument(skip(self))]
     pub async fn query_native(&self, query: String) -> anyhow::Result<u64> {
-        debug!("Sending query");
         Ok(self
-            .clone()
-            .builder
-            .query(&[("default_format", "Native")])
-            .body(query)
-            .send()
+            .send_query(
+                self.clone()
+                    .builder
+                    .query(&[("default_format", "Native")])
+                    .body(query),
+            )
             .await?
-            .error_for_status()?
             .content_length()
             .unwrap_or_default())
     }
@@ -76,14 +88,9 @@ impl ChClient {
             }
         }
         debug!("Sending query");
-        let resp = self.clone().builder.body(query.clone()).send().await?;
-        if !resp.status().is_success() {
-            anyhow::bail!(
-                "{}: {}",
-                resp.status(),
-                resp.text().await.unwrap_or_default()
-            );
-        }
+        let resp = self
+            .send_query(self.clone().builder.body(query.clone()))
+            .await?;
         let hit = resp.headers().get("x-cache").map_or(false, |c| c == "HIT");
         trace!(hit, "Received response");
         let rows: Vec<ResultRow> = resp
