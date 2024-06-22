@@ -121,13 +121,19 @@ async fn main_impl() -> anyhow::Result<()> {
     match args.command {
         Command::Print => {
             println!();
-            println!("{}", "Variables:\n".yellow());
-            for sql in dashboard.variables_sql() {
-                print_sql(sql, args.theme.as_ref())?;
+            println!("{}", "Variables:\n".yellow().bold());
+            for var in dashboard.variables_sql() {
+                println!("{}", var.name.yellow());
+                print_sql(&var.query, args.theme.as_ref())?;
             }
-            println!("{}", "Panels:\n".yellow());
-            for sql in dashboard.panels_sql() {
-                print_sql(sql, args.theme.as_ref())?;
+            println!("{}", "Panels:\n".yellow().bold());
+            for panel in dashboard.panels {
+                if panel.sql().next().is_some() {
+                    println!("{}", panel.to_string().yellow());
+                }
+                for sql in panel.sql() {
+                    print_sql(sql, args.theme.as_ref())?;
+                }
             }
         }
         Command::Execute {
@@ -171,9 +177,13 @@ async fn main_impl() -> anyhow::Result<()> {
                 debug!(?combination);
 
                 let mut size = 0;
-                for sql in dashboard.panels_sql() {
-                    let sql = variables::substitute_variables(sql, &combination)?;
-                    size += client.query_native(sql).await?;
+                for panel in &dashboard.panels {
+                    for sql in panel.sql() {
+                        let sql = variables::substitute_variables(sql, &combination)?;
+                        size += client.query_native(sql.clone()).await.with_context(|| {
+                            format!("Failed to run query [{}] in panel {}", sql, panel)
+                        })?;
+                    }
                 }
                 info!(duration=?start.elapsed(), size_mb = size as f64/1e6, "Executed combination");
                 progress.inc(1);

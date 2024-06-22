@@ -35,23 +35,15 @@ pub struct DashboardResponse {
 #[derive(Debug, Deserialize)]
 pub struct Dashboard {
     pub title: String,
-    panels: Vec<Panel>,
+    pub panels: Vec<Panel>,
     templating: TemplateList,
 }
 impl Dashboard {
     pub fn variables(&self) -> impl DoubleEndedIterator<Item = &Variable> {
         self.templating.list.iter()
     }
-    pub fn variables_sql(&self) -> impl Iterator<Item = &String> {
-        self.variables()
-            .filter(|v| v.is_clickhouse_ds())
-            .map(|ds| &ds.query)
-    }
-    pub fn panels_sql(&self) -> impl Iterator<Item = &String> {
-        self.panels
-            .iter()
-            .flat_map(|p| &p.targets)
-            .flat_map(|t| &t.raw_sql)
+    pub fn variables_sql(&self) -> impl Iterator<Item = &Variable> {
+        self.variables().filter(|v| v.is_clickhouse_ds())
     }
     // This is a bit inefficient, to be able to handle interdependent variables.
     pub async fn variables_combinations(
@@ -106,7 +98,7 @@ struct TemplateList {
 #[derive(Debug, Deserialize)]
 pub struct Variable {
     pub name: String,
-    query: String,
+    pub query: String,
     #[serde(default)]
     options: Vec<VariableOption>,
     datasource: Option<DataSource>,
@@ -122,9 +114,22 @@ struct DataSource {
     r#type: String,
 }
 #[derive(Debug, Deserialize)]
-struct Panel {
+pub struct Panel {
+    pub title: String,
+    pub id: u64,
     #[serde(default)]
     targets: Vec<Target>,
+}
+impl std::fmt::Display for Panel {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "Panel {} ({})", self.id, self.title)
+    }
+}
+
+impl Panel {
+    pub fn sql(&self) -> impl Iterator<Item = &String> {
+        self.targets.iter().flat_map(|t| &t.raw_sql)
+    }
 }
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
