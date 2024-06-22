@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use reqwest::header::TRANSFER_ENCODING;
 use reqwest_middleware::RequestBuilder;
 use tracing::*;
 
@@ -49,7 +50,8 @@ impl ChClient {
             .build();
         ChClient {
             builder: client
-                .get(flags.url.clone())
+                .post(flags.url.clone())
+                .header(TRANSFER_ENCODING, "chunked")
                 .basic_auth(&flags.username, flags.password.clone()),
             cache: Default::default(),
         }
