@@ -36,6 +36,9 @@ struct Flags {
     #[clap(long, env = "CH_GRAFANA_CACHE_THEME",
            value_parser=clap::builder::PossibleValuesParser::new(THEMES.iter().map(|s| s.as_str())))]
     theme: Option<String>,
+    /// JSON logs
+    #[clap(long)]
+    log_json: bool,
     #[clap(subcommand)]
     command: Command,
 }
@@ -89,7 +92,6 @@ enum Command {
 }
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt::init();
     if let Err(e) = main_impl().await {
         error!("{:?}", e);
         std::process::exit(1);
@@ -108,6 +110,14 @@ fn print_sql(sql: &str, theme: Option<&String>) -> anyhow::Result<()> {
 }
 async fn main_impl() -> anyhow::Result<()> {
     let args = Flags::parse();
+
+    let fmt = tracing_subscriber::fmt().with_writer(std::io::stderr);
+    if args.log_json {
+        fmt.json().init();
+    } else {
+        fmt.init();
+    }
+
     let start = std::time::Instant::now();
 
     let dashboard = args.get_dashboard().await?;
@@ -171,7 +181,6 @@ async fn main_impl() -> anyhow::Result<()> {
                     progress.length().unwrap(),
                     indicatif::HumanDuration(progress.eta())
                 );
-                let start = std::time::Instant::now();
                 debug!(?combination);
 
                 let mut size = 0;
@@ -186,9 +195,9 @@ async fn main_impl() -> anyhow::Result<()> {
                 info!(duration=?start.elapsed(), size_mb = size as f64/1e6, "Executed combination");
                 progress.inc(1);
             }
-            info!(duration=?start.elapsed(), "Done");
         }
     }
+    info!(duration=?start.elapsed(), "Done");
 
     Ok(())
 }
