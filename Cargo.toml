@@ -8,11 +8,12 @@ anyhow = "1.0.86"
 bat = "0.24.0"
 clap = { version = "4.5.4", features = ["derive", "env"] }
 colored = "2.1.0"
+futures = "0.3.30"
 indicatif = "0.17.8"
 itertools = "0.13.0"
 lazy_static = "1.4.0"
 regex = "1.10.4"
-reqwest = { version = "0.12.4", features = ["rustls-tls", "json", "gzip"], default-features = false }
+reqwest = { version = "0.12.4", features = ["rustls-tls", "json", "gzip", "stream"], default-features = false }
 reqwest-middleware = "0.3.1"
 reqwest-retry = "0.5.0"
 serde = { version = "1.0.203", features = ["derive"] }

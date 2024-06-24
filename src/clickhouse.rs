@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use futures::stream::StreamExt;
 use reqwest::header::TRANSFER_ENCODING;
 use reqwest_middleware::RequestBuilder;
 use tracing::*;
@@ -69,17 +70,24 @@ impl ChClient {
         Ok(resp)
     }
     #[instrument(skip(self))]
-    pub async fn query_native(&self, query: String) -> anyhow::Result<u64> {
-        Ok(self
+    pub async fn query_native(&self, query: String) -> anyhow::Result<usize> {
+        let mut q = self
             .send_query(
                 self.clone()
                     .builder
                     .query(&[("default_format", "Native")])
-                    .body(query),
+                    .body(query.clone()),
             )
             .await?
-            .content_length()
-            .unwrap_or_default())
+            .bytes_stream();
+        // NOTE: Not clear if we need to consume for the cache to succeed.
+        // We could also use https://clickhouse.com/docs/en/interfaces/http#response-buffering
+        let mut size = 0;
+        while let Some(q) = q.next().await {
+            size += q?.len();
+        }
+
+        Ok(size)
     }
     #[instrument(skip(self))]
     pub async fn query(&self, query: String, cache: bool) -> anyhow::Result<Vec<ResultRow>> {
