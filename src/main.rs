@@ -111,7 +111,9 @@ fn print_sql(sql: &str, theme: Option<&String>) -> anyhow::Result<()> {
 async fn main_impl() -> anyhow::Result<()> {
     let args = Flags::parse();
 
-    let fmt = tracing_subscriber::fmt().with_writer(std::io::stderr);
+    let fmt = tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .with_writer(std::io::stderr);
     if args.log_json {
         fmt.json().init();
     } else {
