@@ -2,7 +2,6 @@ mod clickhouse;
 mod grafana;
 mod variables;
 
-use std::collections::HashSet;
 use std::path::PathBuf;
 
 use anyhow::Context;
@@ -12,6 +11,11 @@ use itertools::Itertools;
 use tracing::*;
 
 use grafana::VariablesConfig;
+
+lazy_static::lazy_static! {
+    static ref THEMES: Vec<String> =
+        bat::assets::HighlightingAssets::from_binary().themes().map(String::from).collect();
+}
 
 /// Execute Clickhouse SQL queries from a Grafana dashboard.
 ///
@@ -28,8 +32,9 @@ struct Flags {
     /// Dashboard JSON file.
     #[clap(long, conflicts_with = "dashboard")]
     json: Option<PathBuf>,
-    /// Synctect for syntax highlighting. Pass any invalid value to see the list of available themes.
-    #[clap(long, env = "CH_GRAFANA_CACHE_THEME")]
+    /// Synctect theme for syntax highlighting
+    #[clap(long, env = "CH_GRAFANA_CACHE_THEME",
+           value_parser=clap::builder::PossibleValuesParser::new(THEMES.iter().map(|s| s.as_str())))]
     theme: Option<String>,
     #[clap(subcommand)]
     command: Command,
@@ -95,13 +100,6 @@ fn print_sql(sql: &str, theme: Option<&String>) -> anyhow::Result<()> {
     let mut printer = bat::PrettyPrinter::new();
     printer.input_from_reader(sql).language("sql");
     if let Some(theme) = theme {
-        let themes: HashSet<_> = printer.themes().collect();
-        anyhow::ensure!(
-            themes.contains(theme.as_str()),
-            "Theme {} not found. Available themes: {:?}",
-            theme,
-            themes
-        );
         printer.theme(theme);
     }
     printer.print()?;
