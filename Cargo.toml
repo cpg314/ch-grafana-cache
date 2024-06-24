@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.86"
-bat = "0.24.0"
+bat = { version = "0.24.0", features = ["regex-fancy"], default-features = false }
 clap = { version = "4.5.4", features = ["derive", "env"] }
 colored = "2.1.0"
 futures = "0.3.30"
