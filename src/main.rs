@@ -1,6 +1,7 @@
 mod clickhouse;
 mod grafana;
 mod variables;
+use grafana::VariablesConfig;
 
 use std::path::PathBuf;
 
@@ -9,8 +10,6 @@ use clap::Parser;
 use colored::Colorize;
 use itertools::Itertools;
 use tracing::*;
-
-use grafana::VariablesConfig;
 
 lazy_static::lazy_static! {
     static ref THEMES: Vec<String> =
