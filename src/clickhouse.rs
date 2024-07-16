@@ -39,7 +39,17 @@ impl ResultRow {
         self.cols.len()
     }
 }
-
+#[derive(Default)]
+pub struct QueryOutput {
+    pub rows: usize,
+    pub total_size: usize,
+}
+impl std::ops::AddAssign for QueryOutput {
+    fn add_assign(&mut self, rhs: Self) {
+        self.rows += rhs.rows;
+        self.total_size += rhs.total_size;
+    }
+}
 impl ChClient {
     pub fn from_flags(flags: &Flags) -> Self {
         let retry_policy =
@@ -70,24 +80,26 @@ impl ChClient {
         Ok(resp)
     }
     #[instrument(skip(self))]
-    pub async fn query_native(&self, query: String) -> anyhow::Result<usize> {
-        let mut q = self
+    pub async fn query_native(&self, query: String) -> anyhow::Result<QueryOutput> {
+        let resp = self
             .send_query(
                 self.clone()
                     .builder
                     .query(&[("default_format", "Native")])
                     .body(query.clone()),
             )
-            .await?
-            .bytes_stream();
+            .await?;
+        debug!("{:?}", resp.headers());
+        let mut q = resp.bytes_stream();
         // NOTE: Not clear if we need to consume for the cache to succeed.
         // We could also use https://clickhouse.com/docs/en/interfaces/http#response-buffering
-        let mut size = 0;
+        let mut output = QueryOutput::default();
         while let Some(q) = q.next().await {
-            size += q?.len();
+            output.total_size += q?.len();
+            output.rows += 1;
         }
 
-        Ok(size)
+        Ok(output)
     }
     #[instrument(skip(self))]
     pub async fn query(&self, query: String, cache: bool) -> anyhow::Result<Vec<ResultRow>> {

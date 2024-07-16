@@ -1,6 +1,7 @@
 mod clickhouse;
 mod grafana;
 mod variables;
+use clickhouse::QueryOutput;
 use grafana::VariablesConfig;
 
 use std::path::PathBuf;
@@ -171,33 +172,34 @@ async fn main_impl() -> anyhow::Result<()> {
 
             let n_combinations = combinations.len();
             info!(
-                "{} variables combinations found. Executing queries...",
-                n_combinations
+                n_combinations,
+                "Variables combinations found. Executing queries...",
             );
             let progress = indicatif::ProgressBar::with_draw_target(
                 Some(n_combinations as u64),
                 indicatif::ProgressDrawTarget::hidden(),
             );
             for combination in combinations {
+                let span = span!(Level::INFO, "combination", ?combination);
+                let _span = span.enter();
                 info!(
-                    ?combination,
                     "Executing combination {}/{}, ETA {}.",
-                    progress.position(),
+                    progress.position() + 1,
                     progress.length().unwrap(),
                     indicatif::HumanDuration(progress.eta())
                 );
                 debug!(?combination);
 
-                let mut size = 0;
+                let mut stats = QueryOutput::default();
                 for panel in &dashboard.panels {
                     for sql in panel.sql() {
                         let sql = variables::substitute_variables(sql, &combination)?;
-                        size += client.query_native(sql.clone()).await.with_context(|| {
+                        stats += client.query_native(sql.clone()).await.with_context(|| {
                             format!("Failed to run query [{}] in panel {}", sql, panel)
                         })?;
                     }
                 }
-                info!(duration=?start.elapsed(), size_mb = size as f64/1e6, "Executed combination");
+                info!(duration=?start.elapsed(), rows=stats.rows, total_size=stats.total_size, "Executed combination");
                 progress.inc(1);
             }
         }
