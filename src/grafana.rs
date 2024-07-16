@@ -17,10 +17,9 @@ impl VariablesConfig {
         let variables: HashSet<&String> = dashboard.variables().map(|v| &v.name).collect();
         for var in self.0.keys() {
             if !variables.contains(var) {
-                anyhow::bail!(
+                warn!(
                     "Variable {} does not exist in the dashboard (variables: {:?})",
-                    var,
-                    variables
+                    var, variables
                 );
             }
         }
