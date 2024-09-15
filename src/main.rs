@@ -40,37 +40,26 @@ struct Flags {
     #[clap(subcommand)]
     command: Command,
 }
-#[derive(serde::Deserialize)]
-#[serde(untagged)]
-enum Json {
-    Resp(grafana::DashboardResponse),
-    Dashboard(grafana::Dashboard),
-}
-impl From<Json> for grafana::Dashboard {
-    fn from(js: Json) -> grafana::Dashboard {
-        match js {
-            Json::Resp(r) => r.dashboard,
-            Json::Dashboard(d) => d,
-        }
-    }
-}
 impl Flags {
     async fn get_dashboard(&self) -> anyhow::Result<grafana::Dashboard> {
-        let resp: Json = match (&self.json, &self.grafana_url, &self.dashboard) {
-            (Some(json), _, _) => serde_json::from_str(&std::fs::read_to_string(json)?)?,
+        match (&self.json, &self.grafana_url, &self.dashboard) {
+            (Some(json), _, _) => Ok(serde_json::from_str::<grafana::Dashboard>(
+                &std::fs::read_to_string(json)?,
+            )?),
             (None, Some(grafana), Some(dashboard)) => {
                 info!("Retrieving dashboard from {}", grafana);
-                reqwest::get(grafana.join("api/dashboards/uid/")?.join(dashboard)?)
-                    .await?
-                    .json::<Json>()
-                    .await?
+                Ok(
+                    reqwest::get(grafana.join("api/dashboards/uid/")?.join(dashboard)?)
+                        .await?
+                        .json::<grafana::DashboardResponse>()
+                        .await?
+                        .dashboard,
+                )
             }
             _ => {
                 anyhow::bail!("Use --json, or --grafana and --dashboard")
             }
-        };
-        let dashboard = grafana::Dashboard::from(resp);
-        Ok(dashboard)
+        }
     }
 }
 
