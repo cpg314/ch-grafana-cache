@@ -116,6 +116,7 @@ struct DataSource {
 }
 #[derive(Debug, Deserialize)]
 pub struct Panel {
+    #[serde(default)]
     pub title: String,
     pub id: u64,
     #[serde(default)]
