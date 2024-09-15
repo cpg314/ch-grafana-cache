@@ -31,6 +31,8 @@ impl VariablesConfig {
 pub struct DashboardResponse {
     pub dashboard: Dashboard,
 }
+// See https://grafana.com/docs/grafana/latest/dashboards/build-dashboards/view-dashboard-json-model/
+// TODO: Support all the fields.
 #[derive(Debug, Deserialize)]
 pub struct Dashboard {
     pub title: String,
@@ -118,6 +120,7 @@ pub struct Panel {
     pub id: u64,
     #[serde(default)]
     targets: Vec<Target>,
+    pub r#type: String,
 }
 impl std::fmt::Display for Panel {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
