@@ -3,19 +3,18 @@ use std::sync::Arc;
 
 use futures::stream::StreamExt;
 use reqwest::header::TRANSFER_ENCODING;
-use reqwest_middleware::RequestBuilder;
 use tracing::*;
 
 #[derive(clap::Parser)]
 pub struct Flags {
     /// URL to the Clickhouse HTTP endpoint
     #[clap(long, env = "CLICKHOUSE_URL")]
-    url: reqwest::Url,
+    pub url: reqwest::Url,
     /// Clickhouse username
     #[clap(long, env = "CLICKHOUSE_USERNAME")]
-    username: String,
+    pub username: String,
     #[clap(long, env = "CLICKHOUSE_PASSWORD")]
-    password: Option<String>,
+    pub password: Option<String>,
 }
 
 pub struct ChClient {
@@ -67,9 +66,20 @@ impl ChClient {
             cache: Default::default(),
         }
     }
-    async fn send_query(&self, builder: RequestBuilder) -> anyhow::Result<reqwest::Response> {
+    pub async fn send_query(
+        &self,
+        query: String,
+        default_format: &str,
+    ) -> anyhow::Result<reqwest::Response> {
         debug!("Sending query");
-        let resp = builder.send().await?;
+        let resp = self
+            .clone()
+            .builder
+            .query(&[("default_format", default_format)])
+            .body(query.clone())
+            .send()
+            .await?;
+        debug!("{:?}", resp.headers());
         if !resp.status().is_success() {
             anyhow::bail!(
                 "{}: {}",
@@ -81,14 +91,7 @@ impl ChClient {
     }
     #[instrument(skip(self))]
     pub async fn query_native(&self, query: String) -> anyhow::Result<QueryOutput> {
-        let resp = self
-            .send_query(
-                self.clone()
-                    .builder
-                    .query(&[("default_format", "Native")])
-                    .body(query.clone()),
-            )
-            .await?;
+        let resp = self.send_query(query.clone(), "Native").await?;
         debug!("{:?}", resp.headers());
         let mut q = resp.bytes_stream();
         // NOTE: Not clear if we need to consume for the cache to succeed.
@@ -110,9 +113,7 @@ impl ChClient {
             }
         }
         debug!("Sending query");
-        let resp = self
-            .send_query(self.clone().builder.body(query.clone()))
-            .await?;
+        let resp = self.send_query(query.clone(), "Native").await?;
         let hit = resp.headers().get("x-cache").map_or(false, |c| c == "HIT");
         trace!(hit, "Received response");
         let rows: Vec<ResultRow> = resp
