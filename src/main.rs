@@ -6,7 +6,7 @@ use colored::Colorize;
 use itertools::Itertools;
 use tracing::*;
 
-use ch_grafana_cache::clickhouse::{self, QueryOutput};
+use ch_grafana_cache::clickhouse;
 use ch_grafana_cache::grafana::{self, VariablesConfig};
 use ch_grafana_cache::variables;
 
@@ -177,16 +177,16 @@ async fn main_impl() -> anyhow::Result<()> {
                 );
                 debug!(?combination);
 
-                let mut stats = QueryOutput::default();
+                let mut bytes = 0;
                 for panel in &dashboard.panels {
                     for sql in panel.sql() {
                         let sql = variables::substitute_variables(sql, &combination)?;
-                        stats += client.query_native(sql.clone()).await.with_context(|| {
+                        bytes += client.query_native(sql.clone()).await.with_context(|| {
                             format!("Failed to run query [{}] in panel {}", sql, panel)
                         })?;
                     }
                 }
-                info!(duration=?start.elapsed(), rows=stats.rows, total_size=stats.total_size, "Executed combination");
+                info!(duration=?start.elapsed(), total_size=bytes, "Executed combination");
                 progress.inc(1);
             }
         }
