@@ -47,3 +47,20 @@ pub fn substitute_variables(
     }
     Ok(sql)
 }
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn substitute_variables() -> anyhow::Result<()> {
+        assert_eq!(
+            "SELECT * FROM test",
+            super::substitute_variables(
+                "SELECT * FROM ${table}",
+                &std::collections::HashMap::from([("table", "test".into())])
+            )?
+        );
+        // Missing variable
+        assert!(super::substitute_variables("${table}", &Default::default()).is_err());
+        Ok(())
+    }
+}
