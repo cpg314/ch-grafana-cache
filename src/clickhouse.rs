@@ -66,6 +66,7 @@ impl ChClient {
             cache: Default::default(),
         }
     }
+    /// Send a query and return the resulting `reqwest::Response`.
     pub async fn send_query(
         &self,
         query: String,
@@ -89,6 +90,7 @@ impl ChClient {
         }
         Ok(resp)
     }
+    /// Execute a query with Native response format, and return the number of rows.
     #[instrument(skip(self))]
     pub async fn query_native(&self, query: String) -> anyhow::Result<QueryOutput> {
         let resp = self.send_query(query.clone(), "Native").await?;
@@ -104,6 +106,7 @@ impl ChClient {
 
         Ok(output)
     }
+    /// Execute a query (with cache enabled or not) and return the resulting rows as strings
     #[instrument(skip(self))]
     pub async fn query(&self, query: String, cache: bool) -> anyhow::Result<Vec<ResultRow>> {
         if cache {
@@ -113,7 +116,7 @@ impl ChClient {
             }
         }
         debug!("Sending query");
-        let resp = self.send_query(query.clone(), "Native").await?;
+        let resp = self.send_query(query.clone(), "TSV").await?;
         let hit = resp.headers().get("x-cache").map_or(false, |c| c == "HIT");
         trace!(hit, "Received response");
         let rows: Vec<ResultRow> = resp
