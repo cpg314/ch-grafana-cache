@@ -29,7 +29,7 @@ impl Clone for ChClient {
         }
     }
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ResultRow {
     pub cols: Vec<String>,
 }
