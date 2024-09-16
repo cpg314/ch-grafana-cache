@@ -100,7 +100,7 @@ An alternative implementation would be to load the front-end via a headless web-
 - It is assumed that the queries do not use time range information at all.
 - The Clickhouse queries are sent directly (using the HTTP interface), rather than through the Grafana data source.
 - Only the `${varname}` [variable syntax](https://grafana.com/docs/grafana/latest/dashboards/variables/variable-syntax/) is supported.
-- It is assumed that the Clickhouse datasources are the ones containing `clickhouse` in their name.
+- It is assumed that the Clickhouse datasources are the ones containing `clickhouse` in their type.
 - The queries retrieving variables must be sent twice (once for parsing with the tabular format, once in native format for caching). The could be avoided by using the native format parsing from [klickhouse](https://docs.rs/klickhouse/latest/klickhouse/).
 - It is assumed that interdependent variables are topologically sorted.
 - Authentication to Grafana is not supported (but easy to add).
