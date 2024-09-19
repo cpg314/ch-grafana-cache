@@ -119,6 +119,7 @@ async fn main_impl() -> anyhow::Result<()> {
         dashboard.title,
         dashboard.variables().map(|v| &v.name).join(", ")
     );
+    debug!("{:#?}", dashboard);
     match args.command {
         Command::Print => {
             println!();

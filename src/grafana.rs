@@ -115,6 +115,7 @@ struct DataSource {
     r#type: String,
 }
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Panel {
     #[serde(default)]
     pub title: String,
@@ -122,6 +123,7 @@ pub struct Panel {
     #[serde(default)]
     targets: Vec<Target>,
     pub r#type: String,
+    pub grid_pos: GridPos,
 }
 impl std::fmt::Display for Panel {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -134,6 +136,15 @@ impl Panel {
         self.targets.iter().flat_map(|t| &t.raw_sql)
     }
 }
+
+#[derive(Debug, Deserialize)]
+pub struct GridPos {
+    pub x: u64,
+    pub y: u64,
+    pub w: u64,
+    pub h: u64,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Target {
