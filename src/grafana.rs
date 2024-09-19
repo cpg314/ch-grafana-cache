@@ -1,14 +1,14 @@
 use std::collections::{HashMap, HashSet};
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tracing::*;
 
 use super::clickhouse::ChClient;
 use super::variables::VariablesAssignment;
 use crate::variables;
 
-#[derive(Debug, Default, Deserialize)]
-pub struct VariablesConfig(HashMap<String, Vec<String>>);
+#[derive(Debug, Default, Deserialize, Serialize)]
+pub struct VariablesConfig(pub HashMap<String, Vec<String>>);
 impl VariablesConfig {
     pub fn check(&self, dashboard: &Dashboard) -> anyhow::Result<()> {
         if !self.0.is_empty() {
