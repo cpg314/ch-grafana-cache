@@ -51,6 +51,10 @@ impl ChClient {
             builder: client
                 .post(flags.url.clone())
                 .header(TRANSFER_ENCODING, "chunked")
+                .header(
+                    reqwest::header::USER_AGENT,
+                    format!("ch-grafana-cache/{}", env!("CARGO_PKG_VERSION")),
+                )
                 .basic_auth(&flags.username, flags.password.clone()),
             cache: Default::default(),
         }
