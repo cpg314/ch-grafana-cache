@@ -182,9 +182,12 @@ async fn main_impl() -> anyhow::Result<()> {
                 for panel in &dashboard.panels {
                     for sql in panel.sql() {
                         let sql = variables::substitute_variables(sql, &combination)?;
-                        bytes += client.query_native(sql.clone()).await.with_context(|| {
-                            format!("Failed to run query [{}] in panel {}", sql, panel)
-                        })?;
+                        let panel_bytes =
+                            client.query_native(sql.clone()).await.with_context(|| {
+                                format!("Failed to run query [{}] in panel {}", sql, panel)
+                            })?;
+                        info!(panel_id = panel.id, panel_size = panel_bytes);
+                        bytes += panel_bytes;
                     }
                 }
                 info!(duration=?start.elapsed(), total_size=bytes, "Executed combination");
