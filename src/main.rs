@@ -186,7 +186,7 @@ async fn main_impl() -> anyhow::Result<()> {
                             client.query_native(sql.clone()).await.with_context(|| {
                                 format!("Failed to run query [{}] in panel {}", sql, panel)
                             })?;
-                        info!(panel_id = panel.id, panel_size = panel_bytes);
+                        debug!(panel_id = panel.id, panel_size = panel_bytes);
                         bytes += panel_bytes;
                     }
                 }
