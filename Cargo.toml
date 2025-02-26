@@ -3,6 +3,9 @@ name = "ch-grafana-cache"
 version = "0.1.12"
 edition = "2021"
 license = "MIT OR Apache-2.0"
+description = "Extract Clickhouse SQL queries from a dashboard and execute them"
+categories = ["caching", "command-line-utilities", "database"]
+repository = "https://github.com/cpg314/ch-grafana-cache"
 
 [[bin]]
 name = "ch-grafana-cache"
